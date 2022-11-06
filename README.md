@@ -6,17 +6,17 @@ This repo just refactors things a little and builds them as wheels (based on the
 
 # Building
 
-You do need `llvm-project` installed somewhere; if you don't then just run `scripts/build_mlir.sh` (in which case you should've cloned with --recursive --depth 1).
+You do need `llvm-project` installed somewhere; if you don't then just run `scripts/build_mlir.sh`.
 Then you can just pip install:
 
 ```shell
-LLVM_BUILD_DIR=$(pwd)/install_mlir pip install . -vvvvv
+LLVM_INSTALL_DIR=$(pwd)/llvm_install pip install . -vvvvv
 ```
 
 Alternatively
 
 ```shell
-LLVM_BUILD_DIR=$(pwd)/install_mlir pip wheel . -vvvvv
+LLVM_INSTALL_DIR=$(pwd)/install_mlir pip wheel . -vvvvv
 ```
 
 # Demo

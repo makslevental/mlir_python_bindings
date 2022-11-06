@@ -2,21 +2,9 @@
 
 set -e -x
 
-PATH="$PATH_":$PATH
-
-# The absolute path to the directory of this script.
-HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-PATH_=$PATH bash "$HERE/check_path.sh"
-
-PYTHON_LOC=${PYTHON_LOC:-$(which python3)}
-
-echo "$PYTHON_LOC"
-echo "$(which python3)"
-
 python3 -m pip install pybind11==2.10.1 numpy wheel PyYAML dataclasses ninja==1.10.2 cmake==3.24.0 -U --force
 
-git submodule sync
-git submodule update --init --recursive --depth 1
+git --recursive --depth 1 https://github.com/llvm/llvm-project.git
 
 mkdir -p build_mlir
 INSTALL_DIR=$HERE/../install_mlir
@@ -53,4 +41,4 @@ cp bin/mlir-tblgen $INSTALL_DIR/bin/mlir-tblgen
 
 popd
 
-echo "thank you come agaimo!"
+echo "thank you come agaim!"

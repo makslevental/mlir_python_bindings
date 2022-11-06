@@ -26,7 +26,7 @@ class CMakeExtension(Extension):
         self.sourcedir = os.path.abspath(sourcedir)
 
 
-def do_tblgen(llvm_build_dir, here, cmake_install_dir):
+def do_tblgen(llvm_install_dir, here, cmake_install_dir):
     td_files = """dialects/AsyncOps.td
     dialects/BufferizationOps.td
     dialects/BuiltinOps.td
@@ -77,13 +77,13 @@ def do_tblgen(llvm_build_dir, here, cmake_install_dir):
     for td_file, dialect_name in zip(td_files, dialect_names):
         subprocess.check_call(
             [
-                f"{llvm_build_dir}/bin/mlir-tblgen",
+                f"{llvm_install_dir}/bin/mlir-tblgen",
                 "-gen-python-op-bindings",
                 f"-bind-dialect={dialect_name}",
                 "-I",
                 "cpp/include",
                 "-I",
-                f"{llvm_build_dir}/include",
+                f"{llvm_install_dir}/include",
                 f"python/mlir/{td_file}",
                 "-o",
                 f"{cmake_install_dir}/python_packages/mlir_core/mlir/dialects/_{dialect_name}_ops_gen.py",
