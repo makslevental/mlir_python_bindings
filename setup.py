@@ -142,7 +142,8 @@ packages = find_namespace_packages(
 )
 
 setup(
-    name="mlir_python_bindings",
+    version="0.0.1",
+    name="mlir-python-bindings",
     include_package_data=True,
     ext_modules=[
         CMakeExtension("mlir._mlir_libs._mlir"),

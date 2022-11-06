@@ -2,6 +2,8 @@
 
 set -e -x
 
+PYTHON_LOC=${PYTHON_LOC:-$(which python3)}
+
 git submodule sync
 git submodule update --init --recursive --depth 1
 
@@ -41,6 +43,7 @@ cmake -G Ninja \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_CXX_COMPILER=clang++ \
   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+  -DPython3_EXECUTABLE=$PYTHON_LOC \
   -DLLVM_ENABLE_PROJECTS=mlir \
   -DCMAKE_INSTALL_PREFIX=../install_mlir \
   ../llvm-project/llvm
@@ -64,8 +67,8 @@ ninja cmake/modules/install
 ninja include/llvm/install
 #ninja install
 cp bin/mlir-tblgen ../install_mlir/bin/mlir-tblgen
-cp ../LLVMExports.cmake ../install_mlir/lib/cmake/llvm
-cp ../LLVMExports-release.cmake ../install_mlir/lib/cmake/llvm
+cp ../scripts/LLVMExports.cmake ../install_mlir/lib/cmake/llvm
+cp ../scripts/LLVMExports-release.cmake ../install_mlir/lib/cmake/llvm
 
 ARCH=(`uname -m | tr '[A-Z]' '[a-z]'`)
 if [ x"$ARCH" == x"arm64" ]; then
@@ -86,5 +89,4 @@ fi
 cp -R ../llvm-project/llvm/include/* ../install_mlir/include
 cp -R include/llvm/Config/. ../install_mlir/include/llvm/Config
 
-
-echo "thank you come agaimo!"
+echo "thank you come again!"
