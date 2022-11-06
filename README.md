@@ -22,7 +22,7 @@ LLVM_BUILD_DIR=$(pwd)/install_mlir pip wheel . -vvvvv
 # Demo
 
 ```shell
-$ python demo.py
+$ python scripts/demo.py
 
 <Dialect arith (class mlir.dialects._arith_ops_gen._Dialect)>
 <Dialect bufferization (class mlir.dialects._bufferization_ops_gen._Dialect)>

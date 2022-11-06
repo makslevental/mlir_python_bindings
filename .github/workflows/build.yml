@@ -1,0 +1,124 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    branches:
+      - main
+
+jobs:
+
+  build:
+    
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        arch: [x86_64, arm64]
+        python_version: ["3.10", "3.11"]
+        exclude:
+          - os: ubuntu-latest
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Get LLVM Hash
+        id: get-llvm-hash
+        run: echo "::set-output name=hash::$(git rev-parse @:./llvm-project)"
+
+      - name: Cache LLVM Repo
+        id: cache-llvm-repo
+        uses: actions/cache@v2
+        with:
+          path: llvm-project
+          key: ${{ runner.os }}-llvm-repo-${{ steps.get-llvm-hash.outputs.hash }}
+
+      - name: Checkout LLVM
+        if: steps.cache-llvm-repo.outputs.cache-hit != 'true'
+        run: git submodule update --init --depth 1 llvm-project
+
+      - name: Compile
+        run: |
+          if [ x"${{ matrix.os }}" == x"ubuntu-latest" ]; then
+            apt update && apt install -y git build-essential wget ninja-build clang
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+          else
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
+          fi
+          bash ~/miniconda.sh -b -p $HOME/llvm_miniconda
+          
+          CONDA_EXE=$HOME/llvm_miniconda/bin/conda
+          $CONDA_EXE create -n mlir -c conda-forge python="${{ matrix.py_version }}" -y
+          export PATH=$HOME/llvm_miniconda/envs/mlir/bin:$PATH
+          
+          python3 -m pip install -r "$(pwd)/llvm-project/mlir/python/requirements.txt"
+          python3 -m pip uninstall -y pybind11
+          python3 -m pip install pybind11==2.10.1 numpy wheel 
+          python3 -m pip install ninja==1.10.2 cmake==3.24.0 -U --force
+          
+          PYTHON_LOC=$(which python3) ./build_mlir.sh
+          LLVM_BUILD_DIR=$(pwd)/install_mlir python3 -m pip wheel .
+
+          mkdir -p ${{ github.sha }}
+          mv *.whl ${{ github.sha }}/
+
+      - name: Upload an artifact
+        uses: actions/upload-artifact@v3
+        if: github.event_name == 'push'
+        with:
+          if-no-files-found: error
+          name: build_artifact
+          path: ${{ github.sha }}
+
+  upload-tarballs:
+
+    runs-on: ubuntu-latest
+
+    needs: [build]
+
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout submodules
+        run: |
+          git submodule update --init --recursive --depth 1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build_artifact
+          path: ${{ github.sha }}
+
+      - name: Set up a release page
+        id: setup_release
+        run: |
+          LLVM_VER="$(python3 scripts/get_llvm_version.py llvm-project/llvm/CMakeLists.txt)"
+          LLVM_COMMIT_ID="$(cd llvm-project && git log -n 1 --pretty=format:"%h" )"
+          tag_name="llvm-${LLVM_VER}-${LLVM_COMMIT_ID}"
+          release_title="LLVM ${LLVM_VER} (${LLVM_COMMIT_ID})"
+          echo "LLVM ${LLVM_VER} created at $(date)" > body.md
+          echo "::set-output name=tag_name::${tag_name}"
+          echo "::set-output name=release_title::${release_title}"
+
+      - name: Upload tarballs
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ github.sha }}/*.whl"
+          bodyFile: body.md
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag: "${{ steps.setup_release.outputs.tag_name }}"
+          name: "${{ steps.setup_release.outputs.release_title }}"
+          removeArtifacts: true
+          allowUpdates: true
+          replacesArtifacts: true
+
