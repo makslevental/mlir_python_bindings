@@ -56,23 +56,23 @@ add_subdirectory(python)
 add_subdirectory(cpp)
 
 add_mlir_python_common_capi_library(StandaloneMLIRPythonCAPI
-        INSTALL_COMPONENT StandaloneMLIRPythonModules
-        INSTALL_DESTINATION python_packages/mlir_core/mlir/_mlir_libs
-        OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/mlir_core/mlir/_mlir_libs"
-        RELATIVE_INSTALL_ROOT "../../../.."
-        DECLARED_HEADERS
-        StandaloneMLIRPythonCAPI.HeaderSources
-        DECLARED_SOURCES
-        StandaloneMLIRPythonSources
-        StandaloneMLIRPythonExtension.RegisterEverything
-        )
+  INSTALL_COMPONENT StandaloneMLIRPythonModules
+  INSTALL_DESTINATION python_packages/mlir_core/mlir/_mlir_libs
+  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/mlir_core/mlir/_mlir_libs"
+  RELATIVE_INSTALL_ROOT "../../../.."
+  DECLARED_HEADERS
+    StandaloneMLIRPythonCAPI.HeaderSources
+  DECLARED_SOURCES
+    StandaloneMLIRPythonSources
+    StandaloneMLIRPythonExtension.RegisterEverything
+)
 
 add_mlir_python_modules(StandaloneMLIRPythonModules
-        ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/mlir_core/mlir"
-        INSTALL_PREFIX "python_packages/mlir_core/mlir"
-        DECLARED_SOURCES
-        StandaloneMLIRPythonSources
-        StandaloneMLIRPythonExtension.RegisterEverything
-        COMMON_CAPI_LINK_LIBS
-        StandaloneMLIRPythonCAPI
-        )
+  ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/mlir_core/mlir"
+  INSTALL_PREFIX "python_packages/mlir_core/mlir"
+  DECLARED_SOURCES
+    StandaloneMLIRPythonSources
+    StandaloneMLIRPythonExtension.RegisterEverything
+  COMMON_CAPI_LINK_LIBS
+    StandaloneMLIRPythonCAPI
+)

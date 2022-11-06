@@ -111,19 +111,6 @@ declare_mlir_python_extension(StandaloneMLIRPythonExtension.Dialects.SparseTenso
     MLIRCAPISparseTensor
 )
 
-declare_mlir_python_extension(StandaloneMLIRPythonExtension.Dialects.Transform.Pybind
-  MODULE_NAME _mlirDialectsTransform
-  ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects.transform
-  ROOT_DIR "${PYTHON_SOURCE_DIR}"
-  SOURCES
-    DialectTransform.cpp
-  PRIVATE_LINK_LIBS
-    LLVMSupport
-  EMBED_CAPI_LINK_LIBS
-    MLIRCAPIIR
-    MLIRCAPITransformDialect
-)
-
 declare_mlir_python_extension(StandaloneMLIRPythonExtension.AsyncDialectPasses
   MODULE_NAME _mlirAsyncPasses
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects.async_dialect

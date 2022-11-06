@@ -121,7 +121,6 @@ declare_mlir_dialect_python_bindings(
   SOURCES
     dialects/_transform_ops_ext.py
     dialects/transform/__init__.py
-    _mlir_libs/_mlir/dialects/transform/__init__.pyi
   DIALECT_NAME transform)
 
 declare_mlir_dialect_extension_python_bindings(
@@ -154,7 +153,7 @@ declare_mlir_dialect_python_bindings(
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
-  # TD_FILE dialects/ArithOps.td
+  # TD_FILE dialects/ArithmeticOps.td
   SOURCES
     dialects/arith.py
     dialects/_arith_ops_ext.py
@@ -223,9 +222,7 @@ declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   # TD_FILE dialects/TensorOps.td
-  SOURCES
-    dialects/tensor.py
-    dialects/_tensor_ops_ext.py
+  SOURCES dialects/tensor.py
   DIALECT_NAME tensor)
 
 declare_mlir_dialect_python_bindings(
@@ -241,5 +238,3 @@ declare_mlir_dialect_python_bindings(
   # TD_FILE dialects/VectorOps.td
   SOURCES dialects/vector.py
   DIALECT_NAME vector)
-
-

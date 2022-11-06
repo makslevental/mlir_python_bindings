@@ -39,7 +39,7 @@ def do_tblgen(llvm_install_dir, here, cmake_install_dir):
     dialects/SCFLoopTransformOps.td
     dialects/LinalgStructuredTransformOps.td
     dialects/MathOps.td
-    dialects/ArithOps.td
+    dialects/ArithmeticOps.td
     dialects/MemRefOps.td
     dialects/MLProgramOps.td
     dialects/PDLOps.td

@@ -22,11 +22,11 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         arch: [x86_64, arm64]
         python_version: [
-#          "3.9",
-#          "3.10",
+          "3.9",
+          "3.10",
           "3.11"
         ]
-        llvm_version: ["15.0.0"]
+        llvm_version: ["15.0.4"]
         exclude:
           - os: ubuntu-latest
             arch: arm64
@@ -35,10 +35,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Get clang
-        if: ${{ matrix.os }} != "ubuntu-latest"
+      - name: Get deps
         run: |
-          sudo apt update && sudo apt install -y git build-essential wget ninja-build clang
+          if [ x"${{ matrix.os }}" == x"ubuntu-latest" ]; then
+            sudo apt update && sudo apt install -y git build-essential wget ninja-build clang
+          else
+            brew install ninja
+          fi
 
       - name: Get LLVM Install
         run: |
