@@ -1,0 +1,142 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    branches:
+      - main
+
+jobs:
+
+  build:
+    
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        arch: [x86_64, arm64]
+        python_version: ["3.10", "3.11"]
+        exclude:
+          - os: ubuntu-latest
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Get clang
+        if: steps.cache-python-deps.outputs.cache-hit != 'true'
+        run: |
+          if [ x"${{ matrix.os }}" == x"ubuntu-latest" ]; then
+            sudo apt update && sudo apt install -y git build-essential wget ninja-build clang
+          fi
+
+      - name: Get python deps
+#        if: steps.cache-python-deps.outputs.cache-hit != 'true'
+        run:
+          OS=${{ matrix.os }} PY_VERSION="${{ matrix.py_version }}" ./scripts/get_deps.sh
+
+#      - name: Cache python deps
+#        id: cache-python-deps
+#        uses: actions/cache@v2
+#        with:
+#          path: llvm_miniconda
+#          key: ${{ runner.os }}-python-deps-${{ secrets.CACHE_VERSION }}-${{ matrix.arch }}-${{ matrix.python_version }}
+
+      - name: Get LLVM Hash
+        id: get-llvm-hash
+        run: echo "hash=$(git rev-parse @:./llvm-project)" >> $GITHUB_OUTPUT
+
+      - name: Cache LLVM Repo
+        id: cache-llvm-repo
+        uses: actions/cache@v2
+        with:
+          path: llvm-project
+          key: ${{ runner.os }}-llvm-repo-${{ steps.get-llvm-hash.outputs.hash }}
+
+      - name: Checkout LLVM
+        if: steps.cache-llvm-repo.outputs.cache-hit != 'true'
+        run: git submodule update --init --depth 1 llvm-project
+
+      - name: Cache LLVM
+        id: cache-llvm
+        uses: actions/cache@v2
+        with:
+          path: install_mlir
+          key: ${{ runner.os }}-llvm-build-${{ secrets.CACHE_VERSION }}-${{ steps.get-llvm-hash.outputs.hash }}
+
+      - name: Rebuild LLVM
+        if: steps.cache-llvm-repo.outputs.cache-hit != 'true'
+        run: |
+          PATH=$(pwd)/llvm_miniconda/envs/mlir/bin:$PATH
+          PATH_=$PATH ./scripts/check_path.sh
+          PATH_=$PATH PYTHON_LOC=$(which python3) ./scripts/build_mlir.sh
+
+      - name: Build wheel
+        run: |
+          PATH=$(pwd)/llvm_miniconda/envs/mlir/bin:$PATH
+          PATH_=$PATH ./scripts/check_path.sh
+          
+          LLVM_INSTALL_DIR=$(pwd)/install_mlir python3 -m pip wheel .
+
+          mkdir -p ${{ github.sha }}
+          mv *.whl ${{ github.sha }}/
+
+      - name: Upload an artifact
+        uses: actions/upload-artifact@v3
+        if: github.event_name == 'push'
+        with:
+          if-no-files-found: error
+          name: build_artifact
+          path: ${{ github.sha }}
+
+  upload-tarballs:
+
+    runs-on: ubuntu-latest
+
+    needs: [build]
+
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout submodules
+        run: |
+          git submodule update --init --recursive --depth 1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build_artifact
+          path: ${{ github.sha }}
+
+      - name: Set up a release page
+        id: setup_release
+        run: |
+          LLVM_VER="$(python3 scripts/get_llvm_version.py llvm-project/llvm/CMakeLists.txt)"
+          LLVM_COMMIT_ID="$(cd llvm-project && git log -n 1 --pretty=format:"%h" )"
+          tag_name="llvm-${LLVM_VER}-${LLVM_COMMIT_ID}"
+          release_title="LLVM ${LLVM_VER} (${LLVM_COMMIT_ID})"
+          echo "LLVM ${LLVM_VER} created at $(date)" > body.md
+          echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
+          echo "release_title=${release_title}" >> $GITHUB_OUTPUT
+
+      - name: Upload tarballs
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ github.sha }}/*.whl"
+          bodyFile: body.md
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag: "${{ steps.setup_release.outputs.tag_name }}"
+          name: "${{ steps.setup_release.outputs.release_title }}"
+          removeArtifacts: true
+          allowUpdates: true
+          replacesArtifacts: true
+

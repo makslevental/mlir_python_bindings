@@ -98,11 +98,11 @@ class CMakeBuild(build_py):
         here = os.path.abspath(os.path.dirname(__file__))
         cmake_build_dir = os.path.join(here, "build")
         cmake_install_dir = os.path.join(cmake_build_dir, "install")
-        llvm_build_dir = os.getenv("LLVM_BUILD_DIR")
+        llvm_install_dir = os.getenv("LLVM_INSTALL_DIR")
         cmake_args = [
             "-DCMAKE_BUILD_TYPE=Release",  # not used on MSVC, but no harm
             f"-DCMAKE_INSTALL_PREFIX={cmake_install_dir}",
-            f"-DCMAKE_PREFIX_PATH={llvm_build_dir}",
+            f"-DCMAKE_PREFIX_PATH={llvm_install_dir}",
         ]
 
         build_args = []
@@ -119,7 +119,7 @@ class CMakeBuild(build_py):
             ["cmake", "--build", ".", "--target", "install"] + build_args,
             cwd=cmake_build_dir,
         )
-        do_tblgen(llvm_build_dir, here, cmake_install_dir)
+        do_tblgen(llvm_install_dir, here, cmake_install_dir)
         shutil.copytree(
             os.path.join(cmake_install_dir, "python_packages", "mlir_core"),
             target_dir,
