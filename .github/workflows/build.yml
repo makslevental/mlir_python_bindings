@@ -62,11 +62,33 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.9.0
+
+#      - name: Build wheel
+#        run: |
+#          LLVM_INSTALL_DIR=$(pwd)/llvm python3 -m pip wheel .
+#          mkdir -p ${{ github.sha }}
+#          mv *.whl ${{ github.sha }}/
+
       - name: Build wheel
         run: |
-          LLVM_INSTALL_DIR=$(pwd)/llvm python3 -m pip wheel .
-          mkdir -p ${{ github.sha }}
+          if [ x"${{ matrix.os }}" == x"ubuntu-latest" ]; then
+            PLATFORM_NAME="manylinux"
+          else
+            PLATFORM_NAME="macosx"
+          fi
+          CP="cp${{ matrix.python_version }}"
+          CP=${CP//./}
+          CIBW_BUILD_="$CP-${PLATFORM_NAME}_${{ matrix.arch }}"
+          export CIBW_ENVIRONMENT="LLVM_INSTALL_DIR=$(pwd)/llvm"
+          CIBW_BUILD=$CIBW_BUILD_ python -m cibuildwheel --output-dir $(pwd)
           mv *.whl ${{ github.sha }}/
+        env:
+          CIBW_BUILD_VERBOSITY: 3
+          CIBW_ARCHS: "${{ matrix.arch }}"
+          CIBW_TEST_SKIP: "*"
+          CIBW_BUILD_FRONTEND: pip
 
       - name: Upload an artifact
         uses: actions/upload-artifact@v3

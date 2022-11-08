@@ -50,6 +50,15 @@ declare_mlir_python_sources(StandaloneMLIRPythonCAPI.HeaderSources
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  # TD_FILE dialects/AffineOps.td
+  SOURCES_GLOB
+    dialects/affine_.py
+    dialects/_affine_ops_ext.py
+  DIALECT_NAME affine_dialect)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   # TD_FILE dialects/AsyncOps.td
   SOURCES_GLOB dialects/async_dialect/*.py
   DIALECT_NAME async_dialect)
