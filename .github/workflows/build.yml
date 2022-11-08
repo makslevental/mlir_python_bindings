@@ -57,13 +57,14 @@ jobs:
           tar -xvf $LLVM_INSTALL_NAME.tar.xz
           mv $LLVM_INSTALL_NAME llvm
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python_version }}
-
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.9.0
+ #     - name: Setup Python
+  #      uses: actions/setup-python@v4
+  #      with:
+  #        python-version: ${{ matrix.python_version }}
+#
+ #     - name: Install cibuildwheel
+  #      run: 
+           python -m pip install cibuildwheel==2.9.0
 
 #      - name: Build wheel
 #        run: |
@@ -71,8 +72,8 @@ jobs:
 #          mkdir -p ${{ github.sha }}
 #          mv *.whl ${{ github.sha }}/
 
-      - name: Build wheel
-        run: |
+ #     - name: Build wheel
+  #      run: |
           if [ x"${{ matrix.os }}" == x"ubuntu-latest" ]; then
             PLATFORM_NAME="manylinux"
           else
