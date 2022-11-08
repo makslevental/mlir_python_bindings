@@ -3,11 +3,17 @@
 #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 import os
+import platform
+import sys
 import shutil
 import subprocess
+import tarfile
+import tempfile
+import urllib.request
 from distutils.command.build import build as _build
+from pathlib import Path
 
-from setuptools import find_namespace_packages, setup, Extension
+from setuptools import find_namespace_packages, setup, Extension, Distribution
 from setuptools.command.build_ext import build_ext
 from setuptools.command.build_py import build_py
 
@@ -27,69 +33,89 @@ class CMakeExtension(Extension):
 
 
 def do_tblgen(llvm_install_dir, here, cmake_install_dir):
-    td_files = """dialects/AsyncOps.td
-    dialects/BufferizationOps.td
-    dialects/BuiltinOps.td
-    dialects/ComplexOps.td
-    dialects/ControlFlowOps.td
-    dialects/FuncOps.td
-    dialects/GPUOps.td
-    dialects/LinalgOps.td
-    dialects/TransformOps.td
-    dialects/SCFLoopTransformOps.td
-    dialects/LinalgStructuredTransformOps.td
-    dialects/MathOps.td
-    dialects/ArithmeticOps.td
-    dialects/MemRefOps.td
-    dialects/MLProgramOps.td
-    dialects/PDLOps.td
-    dialects/SCFOps.td
-    dialects/ShapeOps.td
-    dialects/SparseTensorOps.td
-    dialects/TensorOps.td
-    dialects/TosaOps.td
-    dialects/VectorOps.td""".split()
 
-    dialect_names = """async_dialect
-    bufferization
-    builtin
-    complex
-    cf
-    func
-    gpu
-    linalg
-    transform
-    transform
-    transform
-    math
-    arith
-    memref
-    ml_program
-    pdl
-    scf
-    shape
-    sparse_tensor
-    tensor
-    tosa
-    vector
-    """.split()
+    dialects = [
+        ("dialects/AffineOps.td", "affine_dialect"),
+        ("dialects/ArithmeticOps.td", "arith"),
+        ("dialects/AsyncOps.td", "async_dialect"),
+        ("dialects/BufferizationOps.td", "bufferization"),
+        ("dialects/BuiltinOps.td", "builtin"),
+        ("dialects/ComplexOps.td", "complex"),
+        ("dialects/ControlFlowOps.td", "cf"),
+        ("dialects/FuncOps.td", "func"),
+        ("dialects/GPUOps.td", "gpu"),
+        ("dialects/LinalgOps.td", "linalg"),
+        (
+            "dialects/LinalgStructuredTransformOps.td",
+            ("transform", "structured_transform"),
+        ),
+        ("dialects/MLProgramOps.td", "ml_program"),
+        ("dialects/MathOps.td", "math"),
+        ("dialects/MemRefOps.td", "memref"),
+        ("dialects/PDLOps.td", "pdl"),
+        ("dialects/SCFLoopTransformOps.td", ("transform", "loop_transform")),
+        ("dialects/SCFOps.td", "scf"),
+        ("dialects/ShapeOps.td", "shape"),
+        ("dialects/SparseTensorOps.td", "sparse_tensor"),
+        ("dialects/TensorOps.td", "tensor"),
+        ("dialects/TosaOps.td", "tosa"),
+        ("dialects/TransformOps.td", "transform"),
+        ("dialects/VectorOps.td", "vector"),
+    ]
 
-    for td_file, dialect_name in zip(td_files, dialect_names):
-        subprocess.check_call(
+    for td_file, dialect_name in dialects:
+        args = [
+            f"{llvm_install_dir}/bin/mlir-tblgen",
+            "-gen-python-op-bindings",
+        ]
+        if isinstance(dialect_name, tuple):
+            args.extend(
+                [
+                    f"-bind-dialect={dialect_name[0]}",
+                    "-dialect-extension",
+                    dialect_name[1],
+                    "-o",
+                    f"{cmake_install_dir}/python_packages/mlir_core/mlir/dialects/_{dialect_name[1]}_ops_gen.py",
+                ]
+            )
+        else:
+            args.extend(
+                [
+                    f"-bind-dialect={dialect_name}",
+                    "-o",
+                    f"{cmake_install_dir}/python_packages/mlir_core/mlir/dialects/_{dialect_name}_ops_gen.py",
+                ]
+            )
+
+        args.extend(
             [
-                f"{llvm_install_dir}/bin/mlir-tblgen",
-                "-gen-python-op-bindings",
-                f"-bind-dialect={dialect_name}",
                 "-I",
                 "cpp/include",
                 "-I",
                 f"{llvm_install_dir}/include",
                 f"python/mlir/{td_file}",
-                "-o",
-                f"{cmake_install_dir}/python_packages/mlir_core/mlir/dialects/_{dialect_name}_ops_gen.py",
-            ],
-            cwd=here,
+            ]
         )
+        subprocess.check_call(args, cwd=here)
+
+
+def get_llvm_package():
+    # download if nothing is installed
+    system = platform.system()
+    system_suffix = {"Linux": "linux-gnu-ubuntu-20.04", "Darwin": "apple-darwin"}[
+        system
+    ]
+    ARCH = os.environ.get("ARCH")
+    assert ARCH is not None
+    print(f"ARCH {ARCH}")
+    name = f"llvm+mlir+python-{sys.version_info.major}.{sys.version_info.minor}-15.0.4-{ARCH}-{system_suffix}-release"
+    url = f"https://github.com/makslevental/llvm-releases/releases/download/llvm-15.0.4-5c68a1cb1231/{name}.tar.xz"
+    print(f"downloading and extracting {url} ...")
+    ftpstream = urllib.request.urlopen(url)
+    file = tarfile.open(fileobj=ftpstream, mode="r|*")
+    here = Path(__file__).parent
+    file.extractall(path=str(here))
+    return str(here / name)
 
 
 class CMakeBuild(build_py):
@@ -98,11 +124,13 @@ class CMakeBuild(build_py):
         here = os.path.abspath(os.path.dirname(__file__))
         cmake_build_dir = os.path.join(here, "build")
         cmake_install_dir = os.path.join(cmake_build_dir, "install")
-        llvm_install_dir = os.getenv("LLVM_INSTALL_DIR")
+        llvm_install_dir = get_llvm_package()
+        # python_env_interp = os.environ.get("PYTHON_ENV_INTERP", sys.executable)
         cmake_args = [
             "-DCMAKE_BUILD_TYPE=Release",  # not used on MSVC, but no harm
             f"-DCMAKE_INSTALL_PREFIX={cmake_install_dir}",
             f"-DCMAKE_PREFIX_PATH={llvm_install_dir}",
+            f"-DPython3_EXECUTABLE={sys.executable}",
         ]
 
         build_args = []
@@ -141,6 +169,14 @@ packages = find_namespace_packages(
     ],
 )
 
+
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name"""
+
+    def has_ext_modules(foo):
+        return True
+
+
 setup(
     name="mlir_python_bindings",
     include_package_data=True,
@@ -155,4 +191,5 @@ setup(
     zip_safe=False,
     packages=packages,
     package_dir={"": "python"},
+    distclass=BinaryDistribution,
 )
