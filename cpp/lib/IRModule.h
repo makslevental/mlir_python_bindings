@@ -19,6 +19,7 @@
 #include "mlir-c/Diagnostics.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/IntegerSet.h"
+#include "mlir/IR/Operation.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Optional.h"
 
@@ -520,6 +521,14 @@ public:
   virtual PyOperation &getOperation() = 0;
 };
 
+template <typename cMlir_t, typename MLIR_t>
+static inline cMlir_t wrap(MLIR_t *cpp) { return cMlir_t{cpp}; }                  \
+
+template <typename MLIR_t, typename cMlir_t>
+static inline MLIR_t *unwrap(cMlir_t c) {                                      \
+  return static_cast<MLIR_t *>(c.ptr);                                      \
+}
+
 /// Wrapper around PyOperation.
 /// Operations exist in either an attached (dependent) or detached (top-level)
 /// state. In the detached state (as on creation), an operation is owned by
@@ -606,6 +615,8 @@ public:
   /// Erases the underlying MlirOperation, removes its pointer from the
   /// parent context's live operations map, and sets the valid bit false.
   void erase();
+
+  void replaceAllUsesWith(MlirOperation operation);
 
   /// Invalidate the operation.
   void setInvalid() { valid = false; }

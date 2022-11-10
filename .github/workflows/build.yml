@@ -48,31 +48,25 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.9.0
-
       - name: Build wheel
         run: |
           if [ x"${{ matrix.os }}" == x"ubuntu-latest" ]; then
-            PLATFORM_NAME="manylinux"
+            PLATFORM_NAME="manylinux2014"
           else
-            PLATFORM_NAME="macosx"
+            PLATFORM_NAME="macosx_12_0"
           fi
 
-          CP="cp${{ matrix.python_version }}"
-          CP=${CP//./}
-          CIBW_BUILD_="$CP-${PLATFORM_NAME}_${{ matrix.arch }}"
-          CIBW_ENVIRONMENT_="ARCH=${{ matrix.arch }}"
-          CIBW_ENVIRONMENT=$CIBW_ENVIRONMENT_ CIBW_BUILD=$CIBW_BUILD_ python -m cibuildwheel --output-dir $(pwd)
+          if [ x"${{ matrix.arch }}" == x"arm64" ]; then
+            CMAKE_ARGS_="-DCMAKE_CROSSCOMPILING=True;-DCMAKE_OSX_ARCHITECTURES=arm64;-DMACOSX_DEPLOYMENT_TARGET=12.0;-DCMAKE_CXX_FLAGS='-target arm64-apple-macos -mcpu=apple-m1';-DCMAKE_C_FLAGS='-target arm64-apple-macos -mcpu=apple-m1';-DCMAKE_EXE_LINKER_FLAGS='-arch arm64'"
+          else
+            CMAKE_ARGS_=""
+          fi
+
+          python -m pip install wheel numpy pybind11
+          TBLGEN_ARCH=x86_64 LIB_ARCH=${{ matrix.arch }} CMAKE_ARGS="$CMAKE_ARGS_" python setup.py bdist_wheel --plat-name "${PLATFORM_NAME}_${{ matrix.arch }}"
+
           mkdir -p ${{ github.sha }}
-          mv *.whl ${{ github.sha }}/
-        env:
-          CIBW_BUILD_VERBOSITY: 3
-          CIBW_BEFORE_ALL_LINUX: yum install -y ncurses-devel && ln -s /usr/lib64/libtinfo.so /usr/lib64/libtinfo.so.6
-          CIBW_ARCHS: "${{ matrix.arch }}"
-          CIBW_TEST_SKIP: "*"
-          CIBW_BUILD_FRONTEND: pip
-          MACOSX_DEPLOYMENT_TARGET: "12.0"
+          mv dist/*.whl ${{ github.sha }}/
 
       - name: Upload an artifact
         uses: actions/upload-artifact@v3

@@ -187,6 +187,13 @@ struct PyGlobalDebugFlag {
   }
 };
 
+static void mlirOperationReplaceAllUses(MlirOperation oldOp, MlirOperation newOp) {
+  mlir::Operation *cppOldOp = unwrap<mlir::Operation, MlirOperation>(oldOp);
+  mlir::Operation *cppNewOp = unwrap<mlir::Operation, MlirOperation>(newOp);
+  // auto *context = cppOldOp->getContext();
+  cppOldOp->replaceAllUsesWith(cppNewOp->getResults());
+}
+
 //------------------------------------------------------------------------------
 // Collections.
 //------------------------------------------------------------------------------
@@ -1262,6 +1269,10 @@ void PyOperation::erase() {
     liveOperations.erase(operation.ptr);
   mlirOperationDestroy(operation);
   valid = false;
+}
+
+void PyOperation::replaceAllUsesWith(MlirOperation replacement) {
+    mlirOperationReplaceAllUses(this->get(), replacement);
 }
 
 //------------------------------------------------------------------------------
@@ -2680,6 +2691,9 @@ void mlir::python::populateIRCore(py::module &m) {
                                return py::none();
                              })
       .def("erase", &PyOperation::erase)
+      .def("replace_all_uses_with", [](PyOperation &self, PyOperation &other) {
+        self.replaceAllUsesWith(other.get());
+      })
       .def("clone", &PyOperation::clone, py::arg("ip") = py::none())
       .def_property_readonly(MLIR_PYTHON_CAPI_PTR_ATTR,
                              &PyOperation::getCapsule)

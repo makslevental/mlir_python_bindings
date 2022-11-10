@@ -99,23 +99,44 @@ def do_tblgen(llvm_install_dir, here, cmake_install_dir):
         subprocess.check_call(args, cwd=here)
 
 
+def make_executable(path):
+    mode = os.stat(path).st_mode
+    mode |= (mode & 0o444) >> 2  # copy R bits to X
+    os.chmod(path, mode)
+
+
 def get_llvm_package():
     # download if nothing is installed
     system = platform.system()
     system_suffix = {"Linux": "linux-gnu-ubuntu-20.04", "Darwin": "apple-darwin"}[
         system
     ]
-    ARCH = os.environ.get("ARCH")
-    assert ARCH is not None
-    print(f"ARCH {ARCH}")
-    name = f"llvm+mlir+python-{sys.version_info.major}.{sys.version_info.minor}-15.0.4-{ARCH}-{system_suffix}-release"
-    url = f"https://github.com/makslevental/llvm-releases/releases/download/llvm-15.0.4-5c68a1cb1231/{name}.tar.xz"
-    print(f"downloading and extracting {url} ...")
-    ftpstream = urllib.request.urlopen(url)
-    file = tarfile.open(fileobj=ftpstream, mode="r|*")
+    LIB_ARCH = os.environ.get("LIB_ARCH", platform.machine())
+    assert LIB_ARCH is not None
+    print(f"ARCH {LIB_ARCH}")
+    name = f"llvm+mlir+python-{sys.version_info.major}.{sys.version_info.minor}-15.0.4-{LIB_ARCH}-{system_suffix}-release"
     here = Path(__file__).parent
-    file.extractall(path=str(here))
-    return str(here / name)
+    if not (here / "llvm_install").exists():
+        url = f"https://github.com/makslevental/llvm-releases/releases/latest/download/{name}.tar.xz"
+        print(f"downloading and extracting {url} ...")
+        ftpstream = urllib.request.urlopen(url)
+        file = tarfile.open(fileobj=ftpstream, mode="r|*")
+        file.extractall(path=str(here))
+
+    TBLGEN_ARCH = os.environ.get("TBLGEN_ARCH", platform.machine())
+    tblgen_name = f"mlir-tblgen-15.0.4-{TBLGEN_ARCH}-{system_suffix}-release.exe"
+    if not (here / "llvm_install" / "bin" / tblgen_name).exists():
+        url = f"https://github.com/makslevental/llvm-releases/releases/latest/download/{tblgen_name}"
+        print(f"downloading and extracting {url} ...")
+        ftpstream = urllib.request.urlopen(url)
+        os.remove(here / "llvm_install" / "bin" / "mlir-tblgen")
+        with open(here / "llvm_install" / "bin" / "mlir-tblgen", "wb") as f:
+            f.write(ftpstream.read())
+
+        make_executable(str(here / "llvm_install" / "bin" / "mlir-tblgen"))
+
+    print("done downloading")
+    return str((here / "llvm_install").absolute())
 
 
 class CMakeBuild(build_py):
@@ -125,13 +146,13 @@ class CMakeBuild(build_py):
         cmake_build_dir = os.path.join(here, "build")
         cmake_install_dir = os.path.join(cmake_build_dir, "install")
         llvm_install_dir = get_llvm_package()
-        # python_env_interp = os.environ.get("PYTHON_ENV_INTERP", sys.executable)
+        cmake_args = os.environ.get("CMAKE_ARGS", "")
         cmake_args = [
             "-DCMAKE_BUILD_TYPE=Release",  # not used on MSVC, but no harm
             f"-DCMAKE_INSTALL_PREFIX={cmake_install_dir}",
             f"-DCMAKE_PREFIX_PATH={llvm_install_dir}",
             f"-DPython3_EXECUTABLE={sys.executable}",
-        ]
+        ] + cmake_args.split(";")
 
         build_args = []
         os.makedirs(cmake_build_dir, exist_ok=True)
