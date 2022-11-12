@@ -152,6 +152,7 @@ class CMakeBuild(build_py):
             f"-DCMAKE_INSTALL_PREFIX={cmake_install_dir}",
             f"-DCMAKE_PREFIX_PATH={llvm_install_dir}",
             f"-DPython3_EXECUTABLE={sys.executable}",
+            "-DMLIR_ENABLE_EXECUTION_ENGINE=ON"
         ] + cmake_args.split(";")
 
         build_args = []

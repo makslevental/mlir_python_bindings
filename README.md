@@ -9,7 +9,7 @@ This repo just refactors things a little and builds them as wheels (based on the
 Just 
 
 ```shell
-LLVM_INSTALL_DIR=$(pwd)/llvm_install pip install . -vvvvv
+pip install . -vvvvv
 ```
 
 # Demo

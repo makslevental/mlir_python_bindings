@@ -11,6 +11,28 @@
 #include "mlir-c/Transforms.h"
 
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "RefBackend.h"
+//#include "Pass.h"
+
+inline void registerMungeMemrefCopyPass() {
+  ::mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass> {
+    return mlir::python::createMungeMemrefCopyPass();
+  });
+}
+
+inline void registerMungeCallingConventionsPass() {
+  ::mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass> {
+    return mlir::python::createMungeCallingConventionsPass();
+  });
+}
+
+inline void registerExpandOpsForLLVMPass() {
+  ::mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass> {
+    return mlir::python::createExpandOpsForLLVMPass();
+  });
+}
+
+
 
 PYBIND11_MODULE(_mlirRegisterEverything, m) {
   m.doc() = "MLIR All Upstream Dialects and Passes Registration";
@@ -23,4 +45,7 @@ PYBIND11_MODULE(_mlirRegisterEverything, m) {
   mlirRegisterAllPasses();
   mlirRegisterConversionPasses();
   mlirRegisterTransformsPasses();
+  registerMungeMemrefCopyPass();
+  registerExpandOpsForLLVMPass();
+  registerMungeCallingConventionsPass();
 }

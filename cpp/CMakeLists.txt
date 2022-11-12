@@ -8,6 +8,19 @@
 
 set(PYTHON_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 include_directories("include")
+
+add_mlir_library(RefBackend
+  lib/RefBackend.cpp
+
+  LINK_COMPONENTS
+    Core
+
+  LINK_LIBS PUBLIC
+    MLIRIR
+    MLIRTransforms
+    MLIRMathTransforms
+)
+
 declare_mlir_python_extension(StandaloneMLIRPythonExtension.Core
   MODULE_NAME _mlir
   ADD_TO_PARENT StandaloneMLIRPythonSources.Core
@@ -53,6 +66,7 @@ declare_mlir_python_extension(StandaloneMLIRPythonExtension.RegisterEverything
     RegisterEverything.cpp
   PRIVATE_LINK_LIBS
     LLVMSupport
+    RefBackend
   EMBED_CAPI_LINK_LIBS
     MLIRCAPIConversion
     MLIRCAPITransforms
