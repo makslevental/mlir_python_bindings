@@ -1,3 +1,7 @@
+import argparse
+import os
+from pathlib import Path
+
 import numpy as np
 from mlir._mlir_libs._mlir.ir import (
     Context,
@@ -9,36 +13,166 @@ from mlir._mlir_libs._mlir.ir import (
 )
 from mlir.dialects import func, linalg
 
+from compiler_utils import run_pipeline_with_repro_report
 from refbackend import (
     RefBackendLinalgOnTensorsBackend,
+    BUFFERIZATION_PIPELINE,
+    LOWER_LLVM_PIPELINE,
 )
+import benchmark
+
+DEBUG = False
 
 
-def test_matmul():
+M = 32
+N = 32
+K = 32
+
+
+def build_matmul():
     with Context(), Location.unknown():
         module = Module.create()
-        f32 = F64Type.get()
+        f64 = F64Type.get()
         with InsertionPoint(module.body):
 
             @func.FuncOp.from_py_func(
-                RankedTensorType.get((4, 16), f32),
-                RankedTensorType.get((16, 8), f32),
+                RankedTensorType.get((M, N), f64),
+                RankedTensorType.get((N, K), f64),
             )
-            def main(lhs, rhs):
-                out = linalg.InitTensorOp([4, 8], f32)
+            def matmul(lhs, rhs):
+                out = linalg.InitTensorOp([M, K], f64)
                 return linalg.matmul(lhs, rhs, outs=[out])
 
-    print(module)
-    module = RefBackendLinalgOnTensorsBackend.compile(module)
-    print(module)
+    return module
 
+
+def lower_matmul(module, tile_size=2, munge=False):
+    run_pipeline_with_repro_report(
+        module,
+        ",".join(BUFFERIZATION_PIPELINE(munge)),
+    )
+    if DEBUG:
+        print(module)
+    run_pipeline_with_repro_report(
+        module,
+        ",".join(
+            list(
+                filter(
+                    None,
+                    [
+                        "func.func(convert-linalg-to-affine-loops)",
+                        # f"func.func(affine-loop-unroll{{unroll-factor={unroll_factor} unroll-up-to-factor=1}})"
+                        f"func.func(affine-loop-tile{{tile-size={tile_size}}})"
+                        if tile_size > 0
+                        else None,
+                    ],
+                )
+            )
+        ),
+    )
+    if DEBUG:
+        print(module)
+    run_pipeline_with_repro_report(
+        module,
+        ",".join(LOWER_LLVM_PIPELINE),
+    )
+    if DEBUG:
+        print(module)
+    return module
+
+
+def run_matmul(module):
     invoker = RefBackendLinalgOnTensorsBackend.load(module)
-    argument1 = np.random.uniform(low=0.0, high=5, size=(4, 16))
-    argument2 = np.random.uniform(low=0.0, high=5, size=(16, 8))
-    res = invoker.main(argument1, argument2)
+    mat1 = np.round(np.random.uniform(low=0.0, high=5, size=(M, N)))
+    mat2 = np.round(np.random.uniform(low=0.0, high=5, size=(N, K)))
+    res = np.clip(invoker.matmul(mat1, mat2), 0, 1000)
+    print("linalg result:\n")
     print(res)
+    print("\nNumPy result:\n")
+    print(mat1 @ mat2)
 
-    print(argument1 @ argument2)
+
+def test_matmul():
+    module = build_matmul()
+    if DEBUG:
+        print(module)
+    module = lower_matmul(module, munge=True)
+    if DEBUG:
+        print(module)
+    run_matmul(module)
 
 
-test_matmul()
+C_RUNNER_UTILS_FP = os.getenv(
+    "MLIR_C_RUNNER_UTILS",
+    default=str(
+        (
+            Path(__file__).parent.parent
+            / "llvm_install/lib/libmlir_c_runner_utils.dylib"
+        ).absolute()
+    ),
+)
+assert os.path.exists(C_RUNNER_UTILS_FP), "C runner utils not found"
+RUNNER_UTILS_FP = os.getenv(
+    "MLIR_RUNNER_UTILS",
+    str(
+        (
+            Path(__file__).parent.parent / "llvm_install/lib/libmlir_runner_utils.dylib"
+        ).absolute()
+    ),
+)
+assert os.path.exists(RUNNER_UTILS_FP), "Runner utils not found"
+
+
+def reject_outliers(data, m=2.0):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d / mdev if mdev else 0.0
+    return data[s < m]
+
+
+def benchmark_matmul(tile_size):
+    module = build_matmul()
+    bench = benchmark.Benchmark(
+        c_runner_utils_fp=C_RUNNER_UTILS_FP, runner_utils_fp=RUNNER_UTILS_FP
+    )
+    main_module_with_benchmark = bench.wrap(module, "matmul")
+    lowered_module = lower_matmul(main_module_with_benchmark, tile_size)
+    mat1 = np.round(np.random.uniform(low=0.0, high=5, size=(M, N)))
+    mat2 = np.round(np.random.uniform(low=0.0, high=5, size=(N, K)))
+    times = reject_outliers(bench.run(lowered_module, [mat1, mat2]))
+    # don't count the first/JIT warmup run
+    return np.mean(times[10:]), np.std(times[10:])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Benchmark matmul with tiling")
+    parser.add_argument(
+        "-t",
+        "--tile-size",
+        default=2,
+        type=int,
+        help="Tile size",
+    )
+    parser.add_argument(
+        "--tut",
+        choices=[
+            "benchmark",
+            "test",
+        ],
+        default="test",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        benchmark.DEBUG = DEBUG = True
+
+    if args.tut == "test":
+        test_matmul()
+    elif args.tut == "benchmark":
+        tile_size = args.tile_size
+        mean, var = benchmark_matmul(tile_size)
+        print(f"For tile-size {tile_size}, runtime {mean:.2f}±{var:.2f} ns")

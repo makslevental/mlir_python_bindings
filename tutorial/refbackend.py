@@ -24,6 +24,8 @@ from mlir.runtime import (
 from compiler_utils import run_pipeline_with_repro_report
 
 
+DEBUG = False
+
 def assert_arg_type_is_supported(ty):
     SUPPORTED = [
         np.float32,
@@ -134,28 +136,33 @@ class RefBackendInvoker:
         return invoke
 
 
-BUFFERIZATION_PIPELINE = [
-    # "func.func(refback-generalize-tensor-pad)",
-    # Bufferize.
-    "func.func(linalg-init-tensor-to-alloc-tensor)",
-    "func.func(scf-bufferize)",
-    # "func.func(tm-tensor-bufferize)",
-    # "func.func(empty-tensor-to-alloc-tensor)",
-    "func.func(linalg-bufferize)",
-    "func-bufferize",
-    "arith-bufferize",
-    "func.func(tensor-bufferize)",
-    "func.func(finalizing-bufferize)",
-    "refback-munge-calling-conventions",
-    # Insert global variable and instruction sequence for getting the next
-    # global seed used in stateful rng.
-    # "refback-insert-rng-globals",
-]
+BUFFERIZATION_PIPELINE = lambda munge=False: list(
+    filter(
+        None,
+        [
+            # "func.func(refback-generalize-tensor-pad)",
+            # Bufferize.
+            "func.func(linalg-init-tensor-to-alloc-tensor)",
+            "func.func(scf-bufferize)",
+            # "func.func(tm-tensor-bufferize)",
+            # "func.func(empty-tensor-to-alloc-tensor)",
+            "func.func(linalg-bufferize)",
+            "func-bufferize",
+            "arith-bufferize",
+            "func.func(tensor-bufferize)",
+            "func.func(finalizing-bufferize)",
+            "refback-munge-calling-conventions" if munge else None,
+            "func.func(refback-munge-memref-copy)" if munge else None,
+            # Insert global variable and instruction sequence for getting the next
+            # global seed used in stateful rng.
+            # "refback-insert-rng-globals",
+        ],
+    )
+)
 
 LOWER_LLVM_PIPELINE = [
     # Lower to LLVM
     # "func.func(tm-tensor-to-loops)",
-    "func.func(refback-munge-memref-copy)",
     "func.func(convert-linalg-to-loops)",
     "func.func(lower-affine)",
     "convert-scf-to-cf",
@@ -183,7 +190,7 @@ class RefBackendLinalgOnTensorsBackend:
     def compile(imported_module: Module):
         run_pipeline_with_repro_report(
             imported_module,
-            ",".join(BUFFERIZATION_PIPELINE + LOWER_LLVM_PIPELINE),
+            ",".join(BUFFERIZATION_PIPELINE(munge=True) + LOWER_LLVM_PIPELINE),
             "Lowering Linalg-on-Tensors IR to LLVM with RefBackend",
         )
         return imported_module
