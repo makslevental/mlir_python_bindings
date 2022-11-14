@@ -147,6 +147,6 @@ setup(
     },
     zip_safe=False,
     packages=packages,
-    package_dir={"": "python"},
+    # package_dir={"": "python"},
     distclass=BinaryDistribution,
 )

@@ -51,8 +51,7 @@ include(AddMLIRPython)
 mlir_configure_python_dev_packages()
 mlir_detect_pybind11_install()
 
-set(PYTHON_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpp/lib) # --src-root
-set(PYTHON_PY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/python) # --src-root
+set(PYTHON_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpp) # --src-root
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 set(MLIR_TABLEGEN_EXE "" CACHE STRING "Path to mlir-tablegen")
 message(STATUS "MLIR_TABLEGEN_EXE: ${MLIR_TABLEGEN_EXE}")
@@ -63,7 +62,7 @@ include_directories(cpp/include)
 ##################################### Extra passes/stuff
 
 add_mlir_library(RefBackend
-  cpp/lib/RefBackend.cpp
+  cpp/RefBackend.cpp
 
   LINK_COMPONENTS
     Core
@@ -92,7 +91,7 @@ declare_mlir_python_sources(StandaloneMLIRPythonSources.Dialects
 ################################################################################
 
 declare_mlir_python_sources(StandaloneMLIRPythonSources.Core
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   ADD_TO_PARENT StandaloneMLIRPythonSources
   SOURCES
     _mlir_libs/__init__.py
@@ -107,7 +106,7 @@ declare_mlir_python_sources(StandaloneMLIRPythonSources.Core
 )
 
 declare_mlir_python_sources(StandaloneMLIRPythonSources.ExecutionEngine
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   ADD_TO_PARENT StandaloneMLIRPythonSources
   SOURCES
     execution_engine.py
@@ -127,14 +126,14 @@ declare_mlir_python_sources(StandaloneMLIRPythonCAPI.HeaderSources
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/AsyncOps.td
   SOURCES_GLOB dialects/async_dialect/*.py
   DIALECT_NAME async_dialect)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/BufferizationOps.td
   SOURCES
     dialects/bufferization.py
@@ -143,7 +142,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/BuiltinOps.td
   SOURCES
     dialects/builtin.py
@@ -152,7 +151,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/ComplexOps.td
   SOURCES
     dialects/complex.py
@@ -160,7 +159,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/ControlFlowOps.td
   SOURCES
     dialects/cf.py
@@ -168,7 +167,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/FuncOps.td
   SOURCES
     dialects/func.py
@@ -177,14 +176,14 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/GPUOps.td
   SOURCES_GLOB dialects/gpu/*.py
   DIALECT_NAME gpu)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/LinalgOps.td
   SOURCES
     dialects/_linalg_ops_ext.py
@@ -196,7 +195,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/TransformOps.td
   SOURCES
     dialects/_transform_ops_ext.py
@@ -205,7 +204,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_extension_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/SCFLoopTransformOps.td
   SOURCES
     dialects/_loop_transform_ops_ext.py
@@ -215,7 +214,7 @@ declare_mlir_dialect_extension_python_bindings(
 
 declare_mlir_dialect_extension_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/LinalgStructuredTransformOps.td
   SOURCES
     dialects/_structured_transform_ops_ext.py
@@ -225,14 +224,14 @@ declare_mlir_dialect_extension_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/MathOps.td
   SOURCES dialects/math.py
   DIALECT_NAME math)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/ArithmeticOps.td
   SOURCES
     dialects/arith.py
@@ -241,7 +240,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/MemRefOps.td
   SOURCES
     dialects/memref.py
@@ -250,7 +249,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/MLProgramOps.td
   SOURCES
     dialects/ml_program.py
@@ -260,14 +259,14 @@ declare_mlir_dialect_python_bindings(
 declare_mlir_python_sources(
   StandaloneMLIRPythonSources.Dialects.quant
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   SOURCES
     dialects/quant.py
     _mlir_libs/_mlir/dialects/quant.pyi)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/PDLOps.td
   SOURCES
     dialects/pdl.py
@@ -277,7 +276,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/SCFOps.td
   SOURCES
     dialects/scf.py
@@ -286,35 +285,35 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/ShapeOps.td
   SOURCES dialects/shape.py
   DIALECT_NAME shape)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/SparseTensorOps.td
   SOURCES dialects/sparse_tensor.py
   DIALECT_NAME sparse_tensor)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/TensorOps.td
   SOURCES dialects/tensor.py
   DIALECT_NAME tensor)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/TosaOps.td
   SOURCES dialects/tosa.py
   DIALECT_NAME tosa)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT StandaloneMLIRPythonSources.Dialects
-  ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/VectorOps.td
   SOURCES dialects/vector.py
   DIALECT_NAME vector)
@@ -509,7 +508,7 @@ if(MLIR_INCLUDE_TESTS)
   # decoupled from here.
   declare_mlir_python_sources(
     StandaloneMLIRPythonTestSources.Dialects.PythonTest
-    ROOT_DIR "${PYTHON_PY_DIR}/mlir"
+    ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
     ADD_TO_PARENT StandaloneMLIRPythonTestSources.Dialects
     SOURCES dialects/python_test.py)
   set(LLVM_TARGET_DEFINITIONS

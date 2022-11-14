@@ -131,3 +131,16 @@ If you're having trouble installing using `pip`, try
 ```shell
 $ pip install --no-build-isolation --no-clean . -vvvv
 ```
+
+# Dev
+
+You can load the project as a CMake project in your editor of choice with the following defines:
+
+```cmake
+-DCMAKE_PREFIX_PATH=<SOMEWHERE>/llvm_install
+-DPython3_EXECUTABLE=<SOMEWHERE>/venv/bin/python
+-DCMAKE_INSTALL_PREFIX=<SOMEWHERE>/install_bindings
+-DMLIR_TABLEGEN_EXE=<SOMEWHERE>/llvm_install/bin/mlir-tblgen
+```
+
+Note, this won't actually build the python wheel.
