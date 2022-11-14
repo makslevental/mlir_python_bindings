@@ -1,11 +1,9 @@
 import re
 
 from mlir._mlir_libs._mlir.ir import Type, Context, InsertionPoint, Location
+
 from mlir.dialects import memref
-
-from tutorial.compiler_utils import add_dummy_value, traverse_op_region_block_iterators
-
-DEBUG = False
+from compiler_utils import add_dummy_value, traverse_op_region_block_iterators
 
 
 def promote_alloc(module):
