@@ -32,73 +32,6 @@ class CMakeExtension(Extension):
         self.sourcedir = os.path.abspath(sourcedir)
 
 
-def do_tblgen(llvm_install_dir, here, cmake_install_dir):
-
-    dialects = [
-        ("dialects/AffineOps.td", "affine_dialect"),
-        ("dialects/ArithmeticOps.td", "arith"),
-        ("dialects/AsyncOps.td", "async_dialect"),
-        ("dialects/BufferizationOps.td", "bufferization"),
-        ("dialects/BuiltinOps.td", "builtin"),
-        ("dialects/ComplexOps.td", "complex"),
-        ("dialects/ControlFlowOps.td", "cf"),
-        ("dialects/FuncOps.td", "func"),
-        ("dialects/GPUOps.td", "gpu"),
-        ("dialects/LinalgOps.td", "linalg"),
-        (
-            "dialects/LinalgStructuredTransformOps.td",
-            ("transform", "structured_transform"),
-        ),
-        ("dialects/MLProgramOps.td", "ml_program"),
-        ("dialects/MathOps.td", "math"),
-        ("dialects/MemRefOps.td", "memref"),
-        ("dialects/PDLOps.td", "pdl"),
-        ("dialects/SCFLoopTransformOps.td", ("transform", "loop_transform")),
-        ("dialects/SCFOps.td", "scf"),
-        ("dialects/ShapeOps.td", "shape"),
-        ("dialects/SparseTensorOps.td", "sparse_tensor"),
-        ("dialects/TensorOps.td", "tensor"),
-        ("dialects/TosaOps.td", "tosa"),
-        ("dialects/TransformOps.td", "transform"),
-        ("dialects/VectorOps.td", "vector"),
-    ]
-
-    for td_file, dialect_name in dialects:
-        args = [
-            f"{llvm_install_dir}/bin/mlir-tblgen",
-            "-gen-python-op-bindings",
-        ]
-        if isinstance(dialect_name, tuple):
-            args.extend(
-                [
-                    f"-bind-dialect={dialect_name[0]}",
-                    "-dialect-extension",
-                    dialect_name[1],
-                    "-o",
-                    f"{cmake_install_dir}/python_packages/mlir_core/mlir/dialects/_{dialect_name[1]}_ops_gen.py",
-                ]
-            )
-        else:
-            args.extend(
-                [
-                    f"-bind-dialect={dialect_name}",
-                    "-o",
-                    f"{cmake_install_dir}/python_packages/mlir_core/mlir/dialects/_{dialect_name}_ops_gen.py",
-                ]
-            )
-
-        args.extend(
-            [
-                "-I",
-                "cpp/include",
-                "-I",
-                f"{llvm_install_dir}/include",
-                f"python/mlir/{td_file}",
-            ]
-        )
-        subprocess.check_call(args, cwd=here)
-
-
 def make_executable(path):
     mode = os.stat(path).st_mode
     mode |= (mode & 0o444) >> 2  # copy R bits to X
@@ -148,11 +81,14 @@ class CMakeBuild(build_py):
         llvm_install_dir = get_llvm_package()
         cmake_args = os.environ.get("CMAKE_ARGS", "")
         cmake_args = [
-            "-DCMAKE_BUILD_TYPE=Release",  # not used on MSVC, but no harm
+            "-DCMAKE_BUILD_TYPE=Release",
             f"-DCMAKE_INSTALL_PREFIX={cmake_install_dir}",
             f"-DCMAKE_PREFIX_PATH={llvm_install_dir}",
             f"-DPython3_EXECUTABLE={sys.executable}",
-            "-DMLIR_ENABLE_EXECUTION_ENGINE=ON"
+            "-DMLIR_ENABLE_EXECUTION_ENGINE=ON",
+            f"-DLLVM_TABLEGEN_EXE={llvm_install_dir}/bin/llvm-tblgen",
+            f"-DMLIR_TABLEGEN_EXE={llvm_install_dir}/bin/mlir-tblgen",
+            f"-DMLIR_LINALG_ODS_YAML_GEN_EXE={llvm_install_dir}/bin/mlir-linalg-ods-yaml-gen",
         ] + cmake_args.split(";")
 
         build_args = []
@@ -169,7 +105,6 @@ class CMakeBuild(build_py):
             ["cmake", "--build", ".", "--target", "install"] + build_args,
             cwd=cmake_build_dir,
         )
-        do_tblgen(llvm_install_dir, here, cmake_install_dir)
         shutil.copytree(
             os.path.join(cmake_install_dir, "python_packages", "mlir_core"),
             target_dir,
