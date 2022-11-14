@@ -1,6 +1,4 @@
 import argparse
-import os
-from pathlib import Path
 
 import numpy as np
 from mlir._mlir_libs._mlir.ir import (
@@ -11,18 +9,16 @@ from mlir._mlir_libs._mlir.ir import (
     RankedTensorType,
     F64Type,
 )
-from mlir.dialects import func, linalg
 
+import benchmark
 from compiler_utils import run_pipeline_with_repro_report
+from mlir.dialects import func, linalg
 from refbackend import (
     RefBackendLinalgOnTensorsBackend,
     BUFFERIZATION_PIPELINE,
     LOWER_LLVM_PIPELINE,
 )
-import benchmark
-
-DEBUG = False
-
+from config import MLIR_C_RUNNER_UTILS, MLIR_RUNNER_UTILS, DEBUG
 
 M = 32
 N = 32
@@ -102,27 +98,6 @@ def test_matmul():
     run_matmul(module)
 
 
-C_RUNNER_UTILS_FP = os.getenv(
-    "MLIR_C_RUNNER_UTILS",
-    default=str(
-        (
-            Path(__file__).parent.parent
-            / "llvm_install/lib/libmlir_c_runner_utils.dylib"
-        ).absolute()
-    ),
-)
-assert os.path.exists(C_RUNNER_UTILS_FP), "C runner utils not found"
-RUNNER_UTILS_FP = os.getenv(
-    "MLIR_RUNNER_UTILS",
-    str(
-        (
-            Path(__file__).parent.parent / "llvm_install/lib/libmlir_runner_utils.dylib"
-        ).absolute()
-    ),
-)
-assert os.path.exists(RUNNER_UTILS_FP), "Runner utils not found"
-
-
 def reject_outliers(data, m=2.0):
     d = np.abs(data - np.median(data))
     mdev = np.median(d)
@@ -133,7 +108,7 @@ def reject_outliers(data, m=2.0):
 def benchmark_matmul(tile_size):
     module = build_matmul()
     bench = benchmark.Benchmark(
-        c_runner_utils_fp=C_RUNNER_UTILS_FP, runner_utils_fp=RUNNER_UTILS_FP
+        c_runner_utils_fp=MLIR_C_RUNNER_UTILS, runner_utils_fp=MLIR_RUNNER_UTILS
     )
     main_module_with_benchmark = bench.wrap(module, "matmul")
     lowered_module = lower_matmul(main_module_with_benchmark, tile_size)

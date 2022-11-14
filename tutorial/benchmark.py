@@ -6,14 +6,13 @@ import ctypes
 import os
 
 import numpy as np
+
 from mlir import ir
 from mlir.dialects import func, arith, memref, scf
 from mlir.execution_engine import ExecutionEngine
 from mlir.runtime import get_ranked_memref_descriptor
-
 from refbackend import assert_arg_type_is_supported
-
-DEBUG = False
+from config import DEBUG
 
 
 def emit_timer_func() -> func.FuncOp:

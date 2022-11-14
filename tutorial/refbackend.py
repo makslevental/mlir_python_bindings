@@ -22,9 +22,8 @@ from mlir.runtime import (
 )
 
 from compiler_utils import run_pipeline_with_repro_report
+from config import MLIR_C_RUNNER_UTILS, MLIR_RUNNER_UTILS
 
-
-DEBUG = False
 
 def assert_arg_type_is_supported(ty):
     SUPPORTED = [
@@ -91,8 +90,8 @@ def get_ctype_func(func_name):
 class RefBackendInvoker:
     def __init__(self, module):
         shared_libs = [
-            "../llvm_install/lib/libmlir_runner_utils.dylib",
-            "../llvm_install/lib/libmlir_c_runner_utils.dylib",
+            MLIR_C_RUNNER_UTILS,
+            MLIR_RUNNER_UTILS,
         ]
         self.ee = ExecutionEngine(module, shared_libs=shared_libs)
         self.result = None

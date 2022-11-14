@@ -119,7 +119,6 @@ class NoopBuildExtension(build_ext):
 
 
 packages = find_namespace_packages(
-    where="python",
     include=[
         "mlir",
         "mlir.*",
@@ -135,7 +134,11 @@ class BinaryDistribution(Distribution):
 
 
 setup(
-    name="mlir_python_bindings",
+    name="mlir-python-bindings",
+    version="0.0.1",
+    author="Maksim Levental",
+    author_email="maksim.levental@gmail.com",
+    description="MLIR Python bindings + other stuff",
     include_package_data=True,
     ext_modules=[
         CMakeExtension("mlir._mlir_libs._mlir"),
@@ -147,6 +150,5 @@ setup(
     },
     zip_safe=False,
     packages=packages,
-    # package_dir={"": "python"},
     distclass=BinaryDistribution,
 )

@@ -15,6 +15,7 @@ This repo just refactors things a little and builds them as wheels (based on the
 Just 
 
 ```shell
+pip install -r requirements.txt
 pip install .
 ```
 
