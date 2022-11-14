@@ -15,7 +15,7 @@ This repo just refactors things a little and builds them as wheels (based on the
 Just 
 
 ```shell
-pip install . -vvvvv
+pip install .
 ```
 
 # Tutorial
@@ -122,4 +122,12 @@ For tile-size 10, runtime 5593.77±178.83 ns
 
 ```shell
 LLVM_BUILD_DIR=$(pwd)/build_mlir ./copy_from_mlir.sh
+```
+
+# Troubleshooting
+
+If you're having trouble installing using `pip`, try
+
+```shell
+$ pip install --no-build-isolation --no-clean . -vvvv
 ```
